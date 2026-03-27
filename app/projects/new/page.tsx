@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@teamsparta/stack-button'
 import { Text } from '@teamsparta/stack-text'
@@ -42,7 +42,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
   )
 }
 
-export default function NewProjectPage() {
+function NewProjectContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const presetSquadGoalId = searchParams.get('squad_goal_id') ?? ''
@@ -335,5 +335,13 @@ export default function NewProjectPage() {
         </FlexV2>
       </FlexV2>
     </FlexV2.Column>
+  )
+}
+
+export default function NewProjectPage() {
+  return (
+    <Suspense>
+      <NewProjectContent />
+    </Suspense>
   )
 }
