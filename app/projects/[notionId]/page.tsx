@@ -725,6 +725,26 @@ export default function ProjectPage({ params }: { params: Promise<{ notionId: st
               </FlexV2>
             )}
 
+            {/* ── 배포일 입력 (상단) ── */}
+            {editingDeployedAt === pg.id ? (
+              <FlexV2 align="center" gap={8} padding="14px 16px" background="#f0fdf4" border="1px solid #bbf7d0" borderRadius={10}>
+                <Text as="span" font="captionSb" color="#15803d">배포일</Text>
+                <input type="date" value={deployedAtInput} onChange={(e) => setDeployedAtInput(e.target.value)}
+                  style={{ border: '1px solid #86efac', borderRadius: 8, padding: '6px 10px', fontSize: 13 }} />
+                <Button type="button" size="sm" onClick={() => saveDeployedAt(pg.id)} loading={saving} disabled={saving || !deployedAtInput}>저장</Button>
+                <Button type="button" variant="outline" colorScheme="secondary" size="sm" onClick={() => setEditingDeployedAt(null)}>취소</Button>
+              </FlexV2>
+            ) : !pg.deployed_at ? (
+              <FlexV2 align="center" gap={12} padding="14px 16px" background="#f0fdf4" border="1px dashed #86efac" borderRadius={10}>
+                <Text as="span" font="captionM" color="#15803d" style={{ flex: 1 }}>배포 기준으로 지표를 나눠보세요. 배포 전/후 수치를 비교할 수 있어요.</Text>
+                <button type="button"
+                  onClick={() => { setEditingDeployedAt(pg.id); setDeployedAtInput('') }}
+                  style={{ fontSize: 13, color: '#16a34a', background: '#fff', border: '1px solid #86efac', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                  🚀 배포일 설정
+                </button>
+              </FlexV2>
+            ) : null}
+
             {/* ── 배포일 없을 때: 일반 지표 뷰 ── */}
             {!pg.deployed_at && (
               <FlexV2.Column gap={12}>
@@ -851,22 +871,6 @@ export default function ProjectPage({ params }: { params: Promise<{ notionId: st
               </FlexV2.Column>
             )}
 
-            {/* 배포일 입력 */}
-            {editingDeployedAt === pg.id ? (
-              <FlexV2 align="center" gap={8} padding="14px 16px" background="#f0fdf4" border="1px solid #bbf7d0" borderRadius={10}>
-                <Text as="span" font="captionSb" color="#15803d">배포일</Text>
-                <input type="date" value={deployedAtInput} onChange={(e) => setDeployedAtInput(e.target.value)}
-                  style={{ border: '1px solid #86efac', borderRadius: 8, padding: '6px 10px', fontSize: 13 }} />
-                <Button type="button" size="sm" onClick={() => saveDeployedAt(pg.id)} loading={saving} disabled={saving || !deployedAtInput}>저장</Button>
-                <Button type="button" variant="outline" colorScheme="secondary" size="sm" onClick={() => setEditingDeployedAt(null)}>취소</Button>
-              </FlexV2>
-            ) : !pg.deployed_at ? (
-              <button type="button"
-                onClick={() => { setEditingDeployedAt(pg.id); setDeployedAtInput('') }}
-                style={{ alignSelf: 'flex-start', fontSize: 13, color: '#16a34a', background: '#f0fdf4', border: '1px dashed #86efac', borderRadius: 8, padding: '8px 16px', cursor: 'pointer' }}>
-                🚀 배포일 입력하기
-              </button>
-            ) : null}
 
           </FlexV2.Column>
         )

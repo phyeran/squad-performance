@@ -267,31 +267,43 @@ export default function NorthStarPage() {
                             {linkedSG && (
                               <FlexV2.Column gap={0} background="#fafafa"
                                 style={{ borderTop: '1px solid #f3f4f6' }}>
-                                <Link
-                                  href={linkedProjects.length === 0
-                                    ? `/projects/new?squad_goal_id=${linkedSG.id}`
-                                    : `/squad-goals/${linkedSG.id}`}
-                                  style={{ textDecoration: 'none' }}>
-                                  <FlexV2 align="center" justify="between" padding="10px 20px"
-                                    style={{ cursor: 'pointer' }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = '')}>
-                                    <FlexV2 align="center" gap={6}>
-                                      <Text as="span" font="captionSb" color="#374151">연결된 프로젝트</Text>
-                                      <Text as="span" font="captionM" color="#9ca3af">{linkedProjects.length}개</Text>
+                                {linkedProjects.length === 0 ? (
+                                  <Link href={`/projects/new?squad_goal_id=${linkedSG.id}`}
+                                    style={{ textDecoration: 'none' }}>
+                                    <FlexV2.Column align="center" gap={8} padding="20px"
+                                      background="#f0fdf4"
+                                      style={{ cursor: 'pointer', transition: 'background 0.1s' }}
+                                      onMouseEnter={(e) => (e.currentTarget.style.background = '#dcfce7')}
+                                      onMouseLeave={(e) => (e.currentTarget.style.background = '#f0fdf4')}>
+                                      <Text as="p" font="captionSb" color="#15803d">연결된 프로젝트가 없어요</Text>
+                                      <Text as="p" font="captionM" color="#16a34a">
+                                        이 챕터 KPI를 달성하기 위한 프로젝트를 연결해보세요
+                                      </Text>
+                                      <FlexV2 align="center" justify="center" gap={6} padding="8px 20px"
+                                        background="#16a34a" borderRadius={8}>
+                                        <Text as="span" font="captionSb" color="#fff">+ 노션 프로젝트 연결하기</Text>
+                                      </FlexV2>
+                                    </FlexV2.Column>
+                                  </Link>
+                                ) : (
+                                  <>
+                                    <FlexV2 align="center" justify="between" padding="8px 20px">
+                                      <FlexV2 align="center" gap={6}>
+                                        <Text as="span" font="captionSb" color="#374151">연결된 프로젝트</Text>
+                                        <Text as="span" font="captionM" color="#9ca3af">{linkedProjects.length}개</Text>
+                                      </FlexV2>
+                                      <Link href={`/squad-goals/${linkedSG.id}`}
+                                        style={{ fontSize: 12, color: '#6b7280', textDecoration: 'none' }}>
+                                        목록 보기 →
+                                      </Link>
                                     </FlexV2>
-                                    <Text as="span" font="captionM" color="#2563eb">
-                                      {linkedProjects.length === 0 ? '+ 프로젝트 연결 →' : '목록 보기 →'}
-                                    </Text>
-                                  </FlexV2>
-                                </Link>
-                                {linkedProjects.length > 0 && (
-                                  <FlexV2.Column gap={0} background="#fff"
-                                    style={{ borderTop: '1px solid #f3f4f6' }}>
-                                    {linkedProjects.map((p, pi) => (
-                                      <ProjectCard key={p.id} p={p} isFirst={pi === 0} />
-                                    ))}
-                                  </FlexV2.Column>
+                                    <FlexV2.Column gap={0} background="#fff"
+                                      style={{ borderTop: '1px solid #f3f4f6' }}>
+                                      {linkedProjects.map((p, pi) => (
+                                        <ProjectCard key={p.id} p={p} isFirst={pi === 0} />
+                                      ))}
+                                    </FlexV2.Column>
+                                  </>
                                 )}
                               </FlexV2.Column>
                             )}
