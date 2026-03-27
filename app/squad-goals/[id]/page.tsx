@@ -150,7 +150,7 @@ export default function SquadGoalPage({ params }: { params: Promise<{ id: string
       {projects.length === 0 ? (
         <FlexV2.Column gap={12} align="center" style={{ minHeight: '30vh' }} justify="center">
           <Text as="p" font="bodyM" color="#9ca3af">연결된 프로젝트가 없어요.</Text>
-          <Button size="sm" onClick={() => router.push('/projects/new')}>+ 프로젝트 연결</Button>
+          <Button size="sm" onClick={() => router.push(`/projects/new?squad_goal_id=${id}`)}>+ 프로젝트 연결</Button>
         </FlexV2.Column>
       ) : (
         <FlexV2.Column gap={8}>
@@ -234,7 +234,7 @@ export default function SquadGoalPage({ params }: { params: Promise<{ id: string
       )}
 
       <FlexV2 gap={12}>
-        <Button variant="outline" colorScheme="secondary" onClick={() => router.push('/projects/new')}>+ 프로젝트 연결</Button>
+        <Button variant="outline" colorScheme="secondary" onClick={() => router.push(`/projects/new?squad_goal_id=${id}`)}>+ 프로젝트 연결</Button>
       </FlexV2>
     </FlexV2.Column>
   )

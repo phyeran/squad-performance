@@ -321,8 +321,15 @@ export default function ProjectPage({ params }: { params: Promise<{ notionId: st
   const [editingEntry, setEditingEntry] = useState<MetricEntry | null>(null)
 
   const [saving, setSaving] = useState(false)
-  const [summary, setSummary] = useState<string | null>(null)
-  const [summaryLoading, setSummaryLoading] = useState(false)
+
+  // KPI 팁
+  type KpiChapter = { metricName: string; chapter: string; goal: string; kpi: string }
+  type BizKPI = { annualGoal: string; targetValue: string }
+  const [kpiTip, setKpiTip] = useState<string | null>(null)
+  const [kpiTipLoading, setKpiTipLoading] = useState(false)
+  const [kpiChapter, setKpiChapter] = useState<KpiChapter | null>(null)
+  const [bizKPI, setBizKPI] = useState<BizKPI | null>(null)
+  const [northStarName, setNorthStarName] = useState<string | null>(null)
 
   async function loadAll() {
     const [pgRes, sgRes] = await Promise.all([
@@ -491,19 +498,29 @@ export default function ProjectPage({ params }: { params: Promise<{ notionId: st
     await loadAll()
   }
 
-  async function loadSummary() {
-    setSummaryLoading(true)
-    const res = await fetch(`/api/notion-summary?page_id=${decodedId}`)
+  async function loadKpiTip(pgId: string) {
+    setKpiTipLoading(true)
+    const res = await fetch(`/api/project-kpi-tip?project_goal_id=${pgId}`)
     const data = await res.json()
-    setSummary(data.summary ?? data.error ?? '요약 실패')
-    setSummaryLoading(false)
+    setKpiTip(data.tip ?? data.error ?? '분석 실패')
+    if (data.kpiChapter) setKpiChapter(data.kpiChapter)
+    if (data.businessKPI) setBizKPI(data.businessKPI)
+    if (data.northStarMetricName) setNorthStarName(data.northStarMetricName)
+    setKpiTipLoading(false)
   }
 
   useEffect(() => {
     loadAll()
     setEDate(new Date().toISOString().slice(0, 10))
-    loadSummary()
   }, [decodedId])
+
+  // projectGoals 로드 완료 후 첫 번째 연결된 목표의 KPI 체인 자동 로드
+  useEffect(() => {
+    const pg = projectGoals.find((p) => p.squad_goal_id)
+    if (pg && !kpiChapter && !kpiTipLoading) {
+      loadKpiTip(pg.id)
+    }
+  }, [projectGoals])
 
   const projectName = notionProject?.name ?? (projectGoals[0]?.notion_project_name ?? '프로젝트')
 
@@ -542,39 +559,14 @@ export default function ProjectPage({ params }: { params: Promise<{ notionId: st
           )}
         </FlexV2.Column>
 
-        {/* 노션 버튼 + 요약 버튼 */}
-        <FlexV2 gap={8} style={{ flexShrink: 0 }}>
-          <Button variant="outline" colorScheme="secondary" size="sm"
-            onClick={loadSummary} loading={summaryLoading} disabled={summaryLoading}>
-            AI 요약
-          </Button>
-          {notionProject?.url && (
-            <a href={notionProject.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-              <Button variant="outline" colorScheme="secondary" size="sm">
-                노션 열기 ↗
-              </Button>
-            </a>
-          )}
-        </FlexV2>
+        {notionProject?.url && (
+          <a href={notionProject.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+            <Button variant="outline" colorScheme="secondary" size="sm">
+              노션 열기 ↗
+            </Button>
+          </a>
+        )}
       </FlexV2>
-
-      {/* AI 요약 결과 */}
-      {summary && (
-        <FlexV2.Column gap={8} padding="16px 20px" background="#f0f9ff"
-          border="1px solid #bae6fd" borderRadius={12}>
-          <FlexV2 justify="between" align="center">
-            <FlexV2 align="center" gap={6}>
-              <Text as="span" font="captionSb" color="#0369a1">AI 요약</Text>
-              <Text as="span" font="captionM" color="#7dd3fc">Claude 기반</Text>
-            </FlexV2>
-            <button type="button" onClick={() => setSummary(null)}
-              style={{ fontSize: 12, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-          </FlexV2>
-          <Text as="p" font="bodyCompact" color="#0c4a6e" style={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-            {summary}
-          </Text>
-        </FlexV2.Column>
-      )}
 
       {/* 목표 미연결 */}
       {projectGoals.length === 0 && !showLinkForm && (
@@ -624,6 +616,67 @@ export default function ProjectPage({ params }: { params: Promise<{ notionId: st
 
         return (
           <FlexV2.Column key={pg.id} gap={20}>
+
+            {/* ── KPI 연결 체인 + AI 팁 ── */}
+            <FlexV2.Column gap={0} border="1px solid #e5e7eb" borderRadius={12} background="#fff"
+              style={{ overflow: 'hidden' }}>
+              {/* KPI 체인 헤더 */}
+              <FlexV2 align="center" justify="between" padding="12px 16px" background="#f9fafb">
+                <FlexV2 align="center" gap={6} wrap="wrap">
+                  <Text as="span" font="captionSb" color="#374151">기여 KPI</Text>
+                  {kpiChapter ? (
+                    <>
+                      <Text as="span" font="captionM" color="#d1d5db">›</Text>
+                      <Tag size="xs" bgColor="#fef3c7" color="#92400e">{kpiChapter.chapter}</Tag>
+                      <Text as="span" font="captionSb" color="#78350f">{kpiChapter.metricName}</Text>
+                      {bizKPI?.targetValue && (
+                        <Tag size="xs" bgColor="#fff7ed" color="#c2410c">목표 {bizKPI.targetValue}</Tag>
+                      )}
+                    </>
+                  ) : (
+                    <Text as="span" font="captionM" color="#9ca3af">KPI 체인 분석 중...</Text>
+                  )}
+                  {northStarName && (
+                    <>
+                      <Text as="span" font="captionM" color="#d1d5db">›</Text>
+                      <Tag size="xs" bgColor="#eff6ff" color="#2563eb">북극성: {northStarName}</Tag>
+                    </>
+                  )}
+                </FlexV2>
+                <Button variant="outline" colorScheme="secondary" size="sm"
+                  onClick={() => loadKpiTip(pg.id)} loading={kpiTipLoading} disabled={kpiTipLoading}>
+                  AI 해석 팁
+                </Button>
+              </FlexV2>
+
+              {/* 챕터 목표 텍스트 */}
+              {kpiChapter?.goal && (
+                <FlexV2.Column gap={4} padding="10px 16px" background="#fffbeb"
+                  style={{ borderTop: '1px solid #fef3c7' }}>
+                  <Text as="span" font="captionSb" color="#92400e" style={{ fontSize: 11 }}>챕터 목표</Text>
+                  <Text as="p" font="captionM" color="#78350f" style={{ lineHeight: 1.6 }}>{kpiChapter.goal}</Text>
+                </FlexV2.Column>
+              )}
+
+              {/* AI 해석 팁 */}
+              {kpiTip && (
+                <FlexV2.Column gap={8} padding="14px 16px"
+                  style={{ borderTop: '1px solid #e5e7eb' }}>
+                  <FlexV2 justify="between" align="center">
+                    <FlexV2 align="center" gap={6}>
+                      <Text as="span" font="captionSb" color="#6b7280">AI 해석 팁</Text>
+                      <Text as="span" font="captionM" color="#9ca3af">Claude 기반</Text>
+                    </FlexV2>
+                    <button type="button" onClick={() => setKpiTip(null)}
+                      style={{ fontSize: 12, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                  </FlexV2>
+                  <Text as="p" font="captionM" color="#374151"
+                    style={{ lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                    {kpiTip}
+                  </Text>
+                </FlexV2.Column>
+              )}
+            </FlexV2.Column>
 
             {/* 목표 breadcrumb */}
             {editingPg?.id === pg.id ? (

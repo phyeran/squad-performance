@@ -1,13 +1,15 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@teamsparta/stack-button'
 import { Text } from '@teamsparta/stack-text'
 import { FlexV2 } from '@teamsparta/stack-flex'
 import { TextInput } from '@teamsparta/stack-input'
 import { Tag } from '@teamsparta/stack-tag'
 import { NotionProject, SquadGoal, AnnualGoal } from '@/types'
+
+type SheetKPI = { squad: string; annualGoal: string; metricName: string; chapters: { label: string; goal: string }[] }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   '진행 중': { bg: '#eff6ff', text: '#2563eb' },
@@ -42,14 +44,20 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
 
 export default function NewProjectPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const presetSquadGoalId = searchParams.get('squad_goal_id') ?? ''
+
   const [projects, setProjects] = useState<NotionProject[]>([])
   const [squadGoals, setSquadGoals] = useState<(SquadGoal & { annual_goals: AnnualGoal })[]>([])
   const [loading, setLoading] = useState(true)
   const [noNotionKey, setNoNotionKey] = useState(false)
 
+  // squad_goal_id → 시트 기반 표시 이름 ("KPI명 › 챕터")
+  const [sgLabelMap, setSgLabelMap] = useState<Map<string, string>>(new Map())
+
   const [selected, setSelected] = useState('')
   const [pgTitle, setPgTitle] = useState('')
-  const [pgSquadId, setPgSquadId] = useState('')
+  const [pgSquadId, setPgSquadId] = useState(presetSquadGoalId)
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -65,10 +73,31 @@ export default function NewProjectPage() {
         return r.json()
       }),
       fetch('/api/squad-goals').then((r) => r.json()),
-    ]).then(([p, s]) => {
+      fetch('/api/kpi-links').then((r) => r.json()).catch(() => []),
+      fetch('/api/sheets').then((r) => r.json()).catch(() => null),
+    ]).then(([p, s, links, sheetData]) => {
       setProjects(p)
       setSquadGoals(s)
-      if (s.length > 0) setPgSquadId(s[0].id)
+      // URL 파라미터가 없을 때만 첫 번째 목표 기본 선택
+      if (!presetSquadGoalId && s.length > 0) setPgSquadId(s[0].id)
+
+      // kpi_links + sheet 데이터로 squad_goal_id → 실제 챕터 목표 텍스트 맵 구성
+      if (sheetData && !sheetData.error && links) {
+        const kpiMap = new Map<string, string>() // metricName::chapter → goal text
+        for (const kpi of (sheetData.businessKPIs ?? []) as SheetKPI[]) {
+          for (const ch of kpi.chapters) {
+            kpiMap.set(`${kpi.metricName}::${ch.label}`, `${kpi.metricName} › ${ch.label}`)
+          }
+        }
+        const labelMap = new Map<string, string>()
+        for (const link of links) {
+          if (link.squad_goal_id) {
+            const label = kpiMap.get(`${link.metric_name}::${link.chapter}`)
+            if (label) labelMap.set(link.squad_goal_id, label)
+          }
+        }
+        setSgLabelMap(labelMap)
+      }
     }).finally(() => setLoading(false))
   }, [])
 
@@ -111,9 +140,24 @@ export default function NewProjectPage() {
 
   const hasFilter = filterStatus || filterCH || filterProduct
 
+  function sgLabel(sgId: string, sg: SquadGoal & { annual_goals: AnnualGoal }) {
+    return sgLabelMap.get(sgId) ?? sg.title
+  }
+
   return (
     <FlexV2.Column gap={32} maxWidth={640}>
-      <Text as="h1" font="title2">프로젝트 연결</Text>
+      <FlexV2.Column gap={4}>
+        <Text as="h1" font="title2">프로젝트 연결</Text>
+        {presetSquadGoalId && (() => {
+          const sg = squadGoals.find((s) => s.id === presetSquadGoalId)
+          return sg ? (
+            <FlexV2 align="center" gap={6}>
+              <Text as="span" font="captionM" color="#9ca3af">챕터 목표:</Text>
+              <Tag size="xs" bgColor="#eff6ff" color="#2563eb">{sgLabel(sg.id, sg)}</Tag>
+            </FlexV2>
+          ) : null
+        })()}
+      </FlexV2.Column>
 
       {noNotionKey && (
         <FlexV2 padding="16px" background="#fffbeb" border="1px solid #fde68a" borderRadius={12}>
@@ -274,7 +318,7 @@ export default function NewProjectPage() {
               <option value="">없음</option>
               {squadGoals.map((sg) => (
                 <option key={sg.id} value={sg.id}>
-                  {sg.annual_goals?.year}년 / {sg.title}
+                  {sgLabel(sg.id, sg)}
                 </option>
               ))}
             </select>

@@ -101,7 +101,6 @@ export default function NorthStarPage() {
 
   // key: `${metricName}::${chapterLabel}` → squad_goal_id
   const [kpiLinks, setKpiLinks] = useState<Map<string, string>>(new Map())
-  const [savingLink, setSavingLink] = useState<string | null>(null)
 
   async function loadAll() {
     const [sheetRes, sgRes, linksRes] = await Promise.all([
@@ -136,23 +135,6 @@ export default function NorthStarPage() {
     setLoading(false)
   }
 
-  async function saveLink(metricName: string, chapterLabel: string, squadGoalId: string) {
-    const key = linkKey(metricName, chapterLabel)
-    setSavingLink(key)
-    await fetch('/api/kpi-links', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ metric_name: metricName, chapter: chapterLabel, squad_goal_id: squadGoalId || null }),
-    })
-    setKpiLinks((prev) => {
-      const next = new Map(prev)
-      if (squadGoalId) next.set(key, squadGoalId)
-      else next.delete(key)
-      return next
-    })
-    setSavingLink(null)
-  }
-
   useEffect(() => { loadAll() }, [])
 
   const myNorthStars = northStarKPIs.filter((k) => k.squad === '그로스 스쿼드')
@@ -176,7 +158,7 @@ export default function NorthStarPage() {
 
   return (
     <FlexV2.Column gap={32} maxWidth={960}>
-      <Text as="h1" font="title2" color="#111827">북극성 지표</Text>
+      <Text as="h1" font="title2" color="#111827">KPI 관리</Text>
 
       {/* 탭 */}
       <FlexV2 gap={0} style={{ borderBottom: '1px solid #e5e7eb', marginBottom: -20 }}>
@@ -254,7 +236,6 @@ export default function NorthStarPage() {
                         const linkedSgId = kpiLinks.get(key) ?? ''
                         const linkedSG = linkedSgId ? squadGoals.find((sg) => sg.id === linkedSgId) ?? null : null
                         const linkedProjects = linkedSgId ? (projectMap.get(linkedSgId) ?? []) : []
-                        const isSaving = savingLink === key
 
                         return (
                           <FlexV2.Column key={ci} gap={0}
@@ -262,9 +243,7 @@ export default function NorthStarPage() {
 
                             {/* 챕터 라벨 + 목표/KPI */}
                             <FlexV2.Column gap={10} padding="16px 20px" background="#fffbeb">
-                              <FlexV2 align="center" gap={8}>
-                                <Tag size="sm" bgColor="#fef3c7" color="#92400e">챕터 › {ch.label}</Tag>
-                              </FlexV2>
+                              <Tag size="sm" bgColor="#fef3c7" color="#92400e">챕터 › {ch.label}</Tag>
 
                               <FlexV2.Column gap={4}>
                                 <Text as="span" font="captionSb" color="#78350f">목표</Text>
@@ -284,50 +263,29 @@ export default function NorthStarPage() {
                               )}
                             </FlexV2.Column>
 
-                            {/* 프로젝트 연결 드롭다운 */}
-                            <FlexV2.Column gap={8} padding="12px 20px" background="#fff"
-                              style={{ borderTop: '1px solid #fef3c7' }}>
-                              <FlexV2 align="center" gap={8}>
-                                <Text as="span" font="captionSb" color="#374151" style={{ whiteSpace: 'nowrap' }}>
-                                  연결 챕터 목표
-                                </Text>
-                                <select
-                                  value={linkedSgId}
-                                  onChange={(e) => saveLink(kpi.metricName, ch.label, e.target.value)}
-                                  disabled={isSaving}
-                                  style={{
-                                    flex: 1, padding: '5px 10px', fontSize: 13, borderRadius: 7,
-                                    border: '1px solid #d1d5db', background: '#fff', color: '#111827',
-                                    cursor: 'pointer', outline: 'none',
-                                  }}>
-                                  <option value="">— 연결 안 함</option>
-                                  {squadGoals.map((sg) => (
-                                    <option key={sg.id} value={sg.id}>{sg.title}</option>
-                                  ))}
-                                </select>
-                                {isSaving && <Text as="span" font="captionM" color="#9ca3af">저장 중...</Text>}
-                              </FlexV2>
-                            </FlexV2.Column>
-
                             {/* 연결된 프로젝트 목록 */}
                             {linkedSG && (
                               <FlexV2.Column gap={0} background="#fafafa"
                                 style={{ borderTop: '1px solid #f3f4f6' }}>
-                                <FlexV2 align="center" justify="between" padding="8px 20px">
-                                  <FlexV2 align="center" gap={6}>
-                                    <Text as="span" font="captionSb" color="#374151">연결된 프로젝트</Text>
-                                    <Text as="span" font="captionM" color="#9ca3af">{linkedProjects.length}개</Text>
+                                <Link
+                                  href={linkedProjects.length === 0
+                                    ? `/projects/new?squad_goal_id=${linkedSG.id}`
+                                    : `/squad-goals/${linkedSG.id}`}
+                                  style={{ textDecoration: 'none' }}>
+                                  <FlexV2 align="center" justify="between" padding="10px 20px"
+                                    style={{ cursor: 'pointer' }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = '')}>
+                                    <FlexV2 align="center" gap={6}>
+                                      <Text as="span" font="captionSb" color="#374151">연결된 프로젝트</Text>
+                                      <Text as="span" font="captionM" color="#9ca3af">{linkedProjects.length}개</Text>
+                                    </FlexV2>
+                                    <Text as="span" font="captionM" color="#2563eb">
+                                      {linkedProjects.length === 0 ? '+ 프로젝트 연결 →' : '목록 보기 →'}
+                                    </Text>
                                   </FlexV2>
-                                  <Link href={`/squad-goals/${linkedSG.id}`}
-                                    style={{ fontSize: 12, color: '#6b7280', textDecoration: 'none' }}>
-                                    {linkedSG.title} →
-                                  </Link>
-                                </FlexV2>
-                                {linkedProjects.length === 0 ? (
-                                  <FlexV2 padding="10px 20px">
-                                    <Text as="p" font="captionM" color="#9ca3af">이 챕터 목표에 등록된 프로젝트가 없어요.</Text>
-                                  </FlexV2>
-                                ) : (
+                                </Link>
+                                {linkedProjects.length > 0 && (
                                   <FlexV2.Column gap={0} background="#fff"
                                     style={{ borderTop: '1px solid #f3f4f6' }}>
                                     {linkedProjects.map((p, pi) => (
@@ -391,26 +349,28 @@ export default function NorthStarPage() {
                   {allLinkedProjects.length === 0 ? (
                     <FlexV2 padding="12px 20px" background="#f9fafb">
                       <Text as="p" font="captionM" color="#9ca3af">
-                        연결된 챕터 목표 없음 — 사업 KPI 탭에서 챕터별로 연결해주세요
+                        연결된 챕터 목표 없음
                       </Text>
                     </FlexV2>
                   ) : (
                     allLinkedProjects.map(({ chapter, sg, projects }, gi) => (
                       <FlexV2.Column key={gi} gap={0}
                         style={{ borderTop: gi > 0 ? '1px solid #f3f4f6' : undefined }}>
-                        <FlexV2 align="center" justify="between" padding="10px 20px" background="#f9fafb">
-                          <FlexV2 align="center" gap={6}>
-                            <Tag size="xs" bgColor="#eff6ff" color="#2563eb">챕터 › {chapter}</Tag>
-                            <Text as="span" font="captionSb" color="#374151">{sg.title}</Text>
+                        <Link href={`/squad-goals/${sg.id}`} style={{ textDecoration: 'none' }}>
+                          <FlexV2 align="center" justify="between" padding="10px 20px" background="#f9fafb"
+                            style={{ cursor: 'pointer' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#eff6ff')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = '#f9fafb')}>
+                            <FlexV2 align="center" gap={6}>
+                              <Tag size="xs" bgColor="#eff6ff" color="#2563eb">챕터 › {chapter}</Tag>
+                              <Text as="span" font="captionSb" color="#374151">{sg.title}</Text>
+                            </FlexV2>
+                            <FlexV2 align="center" gap={8}>
+                              <Text as="span" font="captionM" color="#9ca3af">프로젝트 {projects.length}개</Text>
+                              <Text as="span" font="captionM" color="#2563eb">보기 →</Text>
+                            </FlexV2>
                           </FlexV2>
-                          <FlexV2 align="center" gap={8}>
-                            <Text as="span" font="captionM" color="#9ca3af">프로젝트 {projects.length}개</Text>
-                            <Link href={`/squad-goals/${sg.id}`}
-                              style={{ fontSize: 12, color: '#6b7280', textDecoration: 'none' }}>
-                              목표 상세 →
-                            </Link>
-                          </FlexV2>
-                        </FlexV2>
+                        </Link>
                         {projects.length > 0 && (
                           <FlexV2.Column gap={0} background="#fff" style={{ borderTop: '1px solid #f3f4f6' }}>
                             {projects.map((p, pi) => (

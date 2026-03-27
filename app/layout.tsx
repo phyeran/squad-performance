@@ -23,9 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Squad Performance
               </Link>
               <nav style={{ display: 'flex', gap: 24, fontSize: 14, color: '#6b7280' }}>
-                <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>대시보드</Link>
-                <Link href="/north-star" style={{ color: 'inherit', textDecoration: 'none' }}>북극성 지표</Link>
-                <Link href="/setup" style={{ color: 'inherit', textDecoration: 'none' }}>목표 설정</Link>
+                <Link href="/north-star" style={{ color: 'inherit', textDecoration: 'none' }}>KPI 관리</Link>
               </nav>
             </div>
           </header>
