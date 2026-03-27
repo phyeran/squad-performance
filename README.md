@@ -2,6 +2,9 @@
 
 그로스 스쿼드의 목표·프로젝트·지표를 하나로 연결하는 사내 성과 관리 대시보드입니다.
 
+**서비스 URL**: https://squad-performance.vercel.app
+**GitHub**: https://github.com/phyeran/squad-performance
+
 ---
 
 ## 해결하는 문제
@@ -36,6 +39,7 @@
 ### 5. 프로젝트 상세 (`/projects/[notionId]`)
 - 지표(KPI) 추가·수정·삭제
 - 지표별 측정값(metric entry) 기록 및 스파크라인 시각화
+- **배포일 설정**: 배포 전/후 지표를 분리해 비교 — 상단에 CTA로 노출
 - 노션 프로젝트 요약 자동 조회 (Claude 기반)
 
 ### 6. 북극성 지표 (`/north-star`)
@@ -43,6 +47,7 @@
 - **스쿼드 북극성 탭**: 북극성 KPI별 현재값·목표값·진행률 바·스파크라인, 수치 직접 업데이트
 - KPI별 **AI 해석** 버튼 (관련 프로젝트 지표 데이터 포함해 분석)
 - **전체 AI 인사이트** 버튼 (전체 KPI 현황 종합 분석)
+- 챕터 목표에 연결된 프로젝트가 없을 경우 노션 프로젝트 연결 CTA 표시
 
 ---
 
@@ -111,6 +116,26 @@ npm run dev
 
 ---
 
+## 배포 방법
+
+### 최초 배포 (완료)
+- GitHub 레포: https://github.com/phyeran/squad-performance
+- Vercel 프로젝트: `hrpark-teamspartacs-projects/squad-performance`
+- Vercel CLI로 프레임워크를 `nextjs`로 수동 설정 후 배포
+
+### 이후 배포 (변경사항 반영)
+```bash
+# 1. GitHub에 코드 올리기
+git add .
+git commit -m "변경 내용 설명"
+git push origin main
+
+# 2. Vercel 배포
+vercel --prod --scope hrpark-teamspartacs-projects
+```
+
+---
+
 ## 디렉터리 구조
 
 ```
@@ -136,6 +161,8 @@ app/
     north-star-context/     # 북극성 KPI별 AI 해석
     notion-summary/         # 노션 프로젝트 요약
     sheets/                 # Google Sheets KPI 연동
+    kpi-links/              # KPI 연결 관리
+    project-kpi-tip/        # 프로젝트 KPI 입력 가이드
 lib/
   supabase.ts               # Supabase 클라이언트 (singleton)
   notion.ts                 # Notion 클라이언트 (서버사이드 전용)
